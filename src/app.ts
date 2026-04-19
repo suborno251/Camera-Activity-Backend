@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
+import cors from 'cors';
 import type { Request, Response } from 'express';
 import db from './config/database';
 import eventRoutes  from './routes/eventRoutes';
@@ -9,7 +10,14 @@ import metricRoutes from './routes/metricRoutes';
 import seedRoutes   from './routes/seedRoutes';
 
 const app  = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
+
+// ── CORS
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+}));
 
 app.use(express.json());
 app.use('/api/events',  eventRoutes);
@@ -24,7 +32,6 @@ app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'FactoryIQ Backend Running' });
 });
 
-// Server running
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
