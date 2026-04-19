@@ -7,7 +7,6 @@ import db from './config/database';
 import eventRoutes  from './routes/eventRoutes';
 import metricRoutes from './routes/metricRoutes';
 import seedRoutes   from './routes/seedRoutes';
-const serverless = require("serverless-http");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -16,7 +15,6 @@ app.use(express.json());
 app.use('/api/events',  eventRoutes);
 app.use('/api/metrics', metricRoutes);
 app.use('/api/seed',    seedRoutes);
-
 
 db.raw('SELECT 1')
   .then(() => console.log('PostgreSQL connected successfully'))
@@ -30,5 +28,3 @@ app.get('/', (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-module.exports.handler = serverless(app);
