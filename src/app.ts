@@ -14,7 +14,6 @@ const PORT = process.env.PORT || 3000;
 
 const allowedOrigins = [
   // 'http://localhost:5173',
-  'https://camera-activity-frontend.vercel.app',
   process.env.CORS_ORIGIN || '',
 ].filter(Boolean);
 
