@@ -8,75 +8,79 @@ A full-stack web application that ingests AI-generated CCTV events, stores them 
 
 | | URL |
 |---|---|
-| **Frontend** | https://beautiful-pegasus-7ebde8.netlify.app |
+| **Frontend** | https://camera-activity-frontend.vercel.app |
 | **Backend API** | https://camera-activity-backend.up.railway.app |
-| **GitHub** | https://github.com/your-username/your-repo ← replace this |
+| **GitHub (Backend)** | https://github.com/your-username/Camera-Dashboard-Backend ← replace |
+| **GitHub (Frontend)** | https://github.com/your-username/Camera-Dashboard ← replace |
 
 ---
 
 ## Tech Stack
 
-| Layer            | Technology                        |
-|------------------|-----------------------------------|
+| Layer            | Technology                          |
+|------------------|-------------------------------------|
 | Frontend         | React.js + TypeScript + Bootstrap 5 |
-| Backend          | Node.js + Express.js + TypeScript |
-| Database         | PostgreSQL (via Knex.js)          |
-| Containerization | Docker + Docker Compose           |
-| Cloud Hosting    | Railway (Backend) + Netlify (Frontend) |
+| Backend          | Node.js + Express.js + TypeScript   |
+| Database         | PostgreSQL (via Knex.js)            |
+| Containerization | Docker + Docker Compose             |
+| Cloud Hosting    | Railway (Backend) + Vercel (Frontend) |
 
 ---
 
 ## Project Structure
 
+### Backend — `Camera-Dashboard-Backend`
 ```
-factoryiq/
-├── backend/
-│   ├── src/
-│   │   ├── config/
-│   │   │   └── database.ts           # Knex PostgreSQL connection setup
-│   │   ├── controllers/
-│   │   │   ├── eventController.ts    # Handles POST /api/events
-│   │   │   ├── metricController.ts   # Handles GET /api/metrics
-│   │   │   └── seedController.ts     # Handles POST /api/seed/refresh
-│   │   ├── routes/
-│   │   │   ├── eventRoutes.ts
-│   │   │   ├── metricRoutes.ts
-│   │   │   └── seedRoutes.ts
-│   │   ├── services/
-│   │   │   └── metricService.ts      # All metric computation logic
-│   │   ├── migrations/
-│   │   │   └── 001_initial_schema.ts # Workers, workstations, events tables
-│   │   └── seeds/
-│   │       └── seed_data.ts          # 6 workers, 6 stations, dummy events
-│   ├── app.ts                        # Express app entry point
-│   ├── knexfile.ts                   # Knex migration/seed configuration
-│   ├── docker-compose.yml
-│   ├── Dockerfile
-│   ├── .env
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── frontend/
-│   ├── public/
-│   │   └── index.html
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Topbar.tsx            # Header with live clock
-│   │   │   ├── SummaryCards.tsx      # Factory-level metric cards
-│   │   │   ├── WorkersTable.tsx      # Workers table with filters
-│   │   │   ├── WorkstationsTable.tsx # Workstations table with filters
-│   │   │   └── DetailModal.tsx       # Worker / station detail popup
-│   │   ├── hooks/
-│   │   │   └── useMetrics.ts         # Custom hook — fetches + maps API data
-│   │   ├── types.ts                  # Shared TypeScript types
-│   │   ├── App.tsx                   # Root component, holds state
-│   │   ├── index.css                 # Global styles / CSS variables
-│   │   └── main.tsx                  # React DOM entry point
-│   ├── .env
-│   ├── package.json
-│   └── tsconfig.json
-│
-└── README.md
+Camera-Dashboard-Backend/
+├── src/
+│   ├── config/
+│   │   └── database.ts           # Knex PostgreSQL connection setup
+│   ├── controllers/
+│   │   ├── eventController.ts    # Handles POST /api/events
+│   │   ├── metricController.ts   # Handles GET /api/metrics
+│   │   └── seedController.ts     # Handles POST /api/seed/refresh
+│   ├── routes/
+│   │   ├── eventRoutes.ts
+│   │   ├── metricRoutes.ts
+│   │   └── seedRoutes.ts
+│   ├── services/
+│   │   └── metricService.ts      # All metric computation logic
+│   ├── migrations/
+│   │   └── 001_initial_schema.ts # Workers, workstations, events tables
+│   ├── seeds/
+│   │   └── seed_data.ts          # 6 workers, 6 stations, dummy events
+│   └── app.ts                    # Express app entry point
+├── knexfile.ts                   # Knex migration/seed configuration
+├── docker-compose.yml            # PostgreSQL + Backend containers
+├── Dockerfile
+├── .env
+├── package.json
+└── tsconfig.json
+```
+
+### Frontend — `Camera-Dashboard`
+```
+Camera-Dashboard/
+├── src/
+│   ├── components/
+│   │   ├── Topbar.tsx            # Header with live clock
+│   │   ├── SummaryCards.tsx      # Factory-level metric cards
+│   │   ├── WorkersTable.tsx      # Workers table with filters
+│   │   ├── WorkstationsTable.tsx # Workstations table with filters
+│   │   └── DetailModal.tsx       # Worker / station detail popup
+│   ├── hooks/
+│   │   └── useMetrics.ts         # Custom hook — fetches + maps API data
+│   ├── types.ts                  # Shared TypeScript types
+│   ├── App.tsx                   # Root component, holds state
+│   ├── index.css                 # Global styles / CSS variables
+│   └── main.tsx                  # React DOM entry point
+├── docker-compose.yml            # Frontend container only
+├── Dockerfile                    # Builds React + serves with nginx
+├── nginx.conf                    # nginx config for React routing
+├── .env
+├── .env.production
+├── package.json
+└── tsconfig.json
 ```
 
 ---
@@ -216,7 +220,7 @@ factoryiq/
           │
           │  JSON Response
           ▼
-    [React Frontend — Netlify]
+    [React Frontend — Vercel]
           │
           ├──> SummaryCards        (factory metrics)
           ├──> WorkersTable        (per-worker metrics + filter)
@@ -272,28 +276,23 @@ factoryiq/
 
 > **Prerequisites:** Docker Desktop installed. No Node.js, PostgreSQL, or any other setup needed.
 
+### Step 1 — Backend + PostgreSQL
+
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/your-repo.git
-cd your-repo/backend
+git clone https://github.com/your-username/Camera-Dashboard-Backend.git
+cd Camera-Dashboard-Backend
 
-# 2. Create .env file
+# Create .env file
 cp .env.example .env
-# Edit CORS_ORIGIN if needed
 
-# 3. Start everything (PostgreSQL + Backend)
+# Start PostgreSQL + Backend
 docker-compose up --build
-
-# Backend available at: http://localhost:3000
-# PostgreSQL available at: localhost:5433
 ```
 
-> On first run, migrations and seeds run automatically. The dashboard will have data immediately.
-
-### What `docker-compose up --build` does automatically
+What happens automatically on first run:
 ```
 1. Pulls postgres:18 image
-2. Starts PostgreSQL container (port 5433)
+2. Starts PostgreSQL container on port 5433
 3. Waits for PostgreSQL to be healthy
 4. Builds the Express backend image
 5. Runs migrations (creates tables)
@@ -301,7 +300,25 @@ docker-compose up --build
 7. Starts Express server on port 3000
 ```
 
-### Reset event data without losing master data
+### Step 2 — Frontend
+
+```bash
+git clone https://github.com/your-username/Camera-Dashboard.git
+cd Camera-Dashboard
+
+# Start Frontend
+docker-compose up --build
+```
+
+### Step 3 — Visit
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:80 |
+| Backend API | http://localhost:3000 |
+| PostgreSQL | localhost:5433 |
+
+### Reset event data (without losing master data)
 ```bash
 curl -X POST http://localhost:3000/api/seed/refresh
 ```
@@ -317,16 +334,20 @@ curl http://localhost:3000/api/seed/status
 
 ### Backend (`.env`)
 ```env
-# Local development
 PORT=3000
-DB_URL=postgresql://postgres:password@<host>:<port>/railway
-CORS_ORIGIN=http://localhost:5173
+DB_URL=postgresql://postgres:yourpassword@<host>:<port>/railway
+CORS_ORIGIN=http://localhost:80
 NODE_ENV=development
 ```
 
 ### Frontend (`.env`)
 ```env
 VITE_API_URL=https://camera-activity-backend.up.railway.app
+```
+
+### Frontend (`.env.production`) — used during Docker build
+```env
+VITE_API_URL=http://localhost:3000
 ```
 
 ---
@@ -341,25 +362,25 @@ docker start postgres18
 docker exec -it postgres18 psql -U postgres -c "CREATE DATABASE factoryiq;"
 
 # Backend
-cd backend
+cd Camera-Dashboard-Backend
 npm install
 npm run migrate   # Create tables
 npm run seed      # Insert master data + dummy events
 npm run dev       # Start Express on http://localhost:3000
 
 # Frontend (new terminal)
-cd frontend
+cd Camera-Dashboard
 npm install
 npm run dev       # Start React on http://localhost:5173
 ```
 
 ### Available Backend Scripts
 
-| Script            | Description                             |
-|-------------------|-----------------------------------------|
-| `npm run dev`     | Start dev server with nodemon + ts-node |
-| `npm run build`   | Compile TypeScript to `dist/`           |
-| `npm run start`   | Run compiled JS from `dist/`            |
-| `npm run migrate` | Run Knex migrations (create tables)     |
-| `npm run seed`    | Insert master data + dummy events       |
-| `npm run db:reset`| Rollback + re-migrate + re-seed         |
+| Script             | Description                             |
+|--------------------|-----------------------------------------|
+| `npm run dev`      | Start dev server with nodemon + ts-node |
+| `npm run build`    | Compile TypeScript to `dist/`           |
+| `npm run start`    | Run compiled JS from `dist/`            |
+| `npm run migrate`  | Run Knex migrations (create tables)     |
+| `npm run seed`     | Insert master data + dummy events       |
+| `npm run db:reset` | Rollback + re-migrate + re-seed         |

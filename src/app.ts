@@ -13,7 +13,12 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 const allowedOrigins = [
+  // 'http://localhost',
+  // 'http://localhost:80',
   // 'http://localhost:5173',
+  // 'http://localhost:3000',
+  // 'https://beautiful-pegasus-7ebde8.netlify.app',
+  // 'https://camera-activity-frontend.vercel.app',
   process.env.CORS_ORIGIN || '',
 ].filter(Boolean);
 
