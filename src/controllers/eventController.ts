@@ -72,7 +72,11 @@ export const ingestBatch = async (req: Request, res: Response): Promise<void> =>
   }
 
   const validTypes = ['working', 'idle', 'absent', 'product_count'];
-  const results = { inserted: 0, duplicates: 0, errors: [] as string[] };
+  const results = { 
+    inserted: 0, 
+    duplicates: 0, 
+    errors: [] as string[] 
+  };
 
   for (const event of events) {
     const { timestamp, worker_id, workstation_id, event_type, confidence, count } = event;

@@ -10,8 +10,8 @@ A full-stack web application that ingests AI-generated CCTV events, stores them 
 |---|---|
 | **Frontend** | https://camera-activity-frontend.vercel.app |
 | **Backend API** | https://camera-activity-backend.up.railway.app |
-| **GitHub (Backend)** | https://github.com/your-username/Camera-Dashboard-Backend ← replace |
-| **GitHub (Frontend)** | https://github.com/your-username/Camera-Dashboard ← replace |
+| **GitHub (Backend)** | https://github.com/suborno251/Camera-Activity-Backend |
+| **GitHub (Frontend)** | https://github.com/suborno251/Camera-Activity-Frontend |
 
 ---
 
@@ -335,7 +335,6 @@ curl http://localhost:3000/api/seed/status
 ### Backend (`.env`)
 ```env
 PORT=3000
-DB_URL=postgresql://postgres:yourpassword@<host>:<port>/railway
 CORS_ORIGIN=http://localhost:80
 NODE_ENV=development
 ```
