@@ -10,8 +10,7 @@
     "migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
     "seed": "ts-node src/seeds/seed_data.ts",
-    "db:reset": "prisma migrate reset --force",
-    "postinstall": "prisma generate"
+    "db:reset": "prisma migrate reset --force"
   },
   "prisma": {
     "seed": "ts-node src/seeds/seed_data.ts"
