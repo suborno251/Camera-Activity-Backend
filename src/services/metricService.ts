@@ -27,18 +27,15 @@ const computeTimeMinutes = (events: any[]): number => {
 // ════════════════════════════════════════════
 //  WORKER METRICS
 // ════════════════════════════════════════════
-export const getWorkerMetrics = async () => {
-  const workers = await db.worker.findMany();
+export const getWorkerMetrics = async (eventsList?: any[], workersList?: any[]) => {
+  const workers = workersList || await db.worker.findMany();
+  const allEvents = eventsList || await db.event.findMany({ orderBy: { timestamp: 'asc' } });
 
-  const metrics = await Promise.all(workers.map(async (worker) => {
-    // Get all events for this worker sorted by timestamp
-    const allEvents = await db.event.findMany({
-      where: { worker_id: worker.worker_id },
-      orderBy: { timestamp: 'asc' },
-    });
+  return workers.map((worker) => {
+    const workerEvents = allEvents.filter(e => e.worker_id === worker.worker_id);
 
-    const workingEvents = allEvents.filter(e => e.event_type === 'working');
-    const idleEvents    = allEvents.filter(e => e.event_type === 'idle');
+    const workingEvents = workerEvents.filter(e => e.event_type === 'working');
+    const idleEvents    = workerEvents.filter(e => e.event_type === 'idle');
 
     const activeMinutes = computeTimeMinutes(workingEvents);
     const idleMinutes   = computeTimeMinutes(idleEvents);
@@ -48,87 +45,79 @@ export const getWorkerMetrics = async () => {
       ? Math.round((activeMinutes / totalMinutes) * 100)
       : 0;
 
-    // Units produced
-    const unitsResult = await db.event.aggregate({
-      where: { worker_id: worker.worker_id, event_type: 'product_count' },
-      _sum: { count: true },
-    });
+    const unitsProduced = workerEvents
+      .filter(e => e.event_type === 'product_count')
+      .reduce((sum, e) => sum + (e.count || 0), 0);
 
-    const unitsProduced = unitsResult._sum.count ?? 0;
     const activeHours   = activeMinutes / 60;
     const unitsPerHour  = activeHours > 0
       ? Math.round((unitsProduced / activeHours) * 10) / 10
       : 0;
 
     // Current status — last event type
-    const lastEvent = allEvents[allEvents.length - 1];
+    const lastEvent = workerEvents[workerEvents.length - 1];
     const status    = lastEvent?.event_type === 'product_count'
       ? 'working'
       : lastEvent?.event_type || 'absent';
 
     return {
-      worker_id:    worker.worker_id,
-      name:         worker.name,
+      worker_id:      worker.worker_id,
+      name:           worker.name,
       status,
-      active_time:  toHoursMinutes(activeMinutes),
-      idle_time:    toHoursMinutes(idleMinutes),
+      active_time:    toHoursMinutes(activeMinutes),
+      idle_time:      toHoursMinutes(idleMinutes),
       utilization,
       units_produced: unitsProduced,
       units_per_hour: unitsPerHour,
     };
-  }));
-
-  return metrics;
+  });
 };
 
 // ════════════════════════════════════════════
 //  WORKSTATION METRICS
 // ════════════════════════════════════════════
-export const getWorkstationMetrics = async () => {
-  const stations = await db.workstation.findMany();
+export const getWorkstationMetrics = async (eventsList?: any[], stationsList?: any[]) => {
+  const stations = stationsList || await db.workstation.findMany();
+  const allEvents = eventsList || await db.event.findMany({ orderBy: { timestamp: 'asc' } });
 
-  const metrics = await Promise.all(stations.map(async (station) => {
-    const allEvents = await db.event.findMany({
-      where: { workstation_id: station.station_id },
-      orderBy: { timestamp: 'asc' },
-    });
+  return stations.map((station) => {
+    const stationEvents = allEvents.filter(e => e.workstation_id === station.station_id);
 
-    const workingEvents = allEvents.filter(e => e.event_type === 'working');
+    const workingEvents = stationEvents.filter(e => e.event_type === 'working');
     const occupancyMins = computeTimeMinutes(workingEvents);
 
     const utilization = Math.round((occupancyMins / SHIFT_DURATION) * 100);
 
-    const unitsResult = await db.event.aggregate({
-      where: { workstation_id: station.station_id, event_type: 'product_count' },
-      _sum: { count: true },
-    });
+    const unitsProduced = stationEvents
+      .filter(e => e.event_type === 'product_count')
+      .reduce((sum, e) => sum + (e.count || 0), 0);
 
-    const unitsProduced  = unitsResult._sum.count ?? 0;
     const occupancyHours = occupancyMins / 60;
     const throughput     = occupancyHours > 0
       ? Math.round((unitsProduced / occupancyHours) * 10) / 10
       : 0;
 
     return {
-      station_id:     station.station_id,
-      name:           station.name,
-      type:           station.type,
-      occupancy_time: toHoursMinutes(occupancyMins),
+      station_id:          station.station_id,
+      name:                station.name,
+      type:                station.type,
+      occupancy_time:      toHoursMinutes(occupancyMins),
       utilization,
-      units_produced: unitsProduced,
+      units_produced:      unitsProduced,
       throughput_per_hour: throughput,
     };
-  }));
-
-  return metrics;
+  });
 };
 
 // ════════════════════════════════════════════
 //  FACTORY METRICS
 // ════════════════════════════════════════════
-export const getFactoryMetrics = async () => {
-  const workerMetrics    = await getWorkerMetrics();
-  const stationMetrics   = await getWorkstationMetrics();
+export const getFactoryMetrics = async (
+  workerMetricsParam?: any[],
+  eventsList?: any[]
+) => {
+  const allEvents = eventsList || await db.event.findMany({ orderBy: { timestamp: 'asc' } });
+  const workerMetrics = workerMetricsParam || await getWorkerMetrics(allEvents);
 
   // Total productive time — sum all worker active times
   const totalActiveMinutes = workerMetrics.reduce((sum, w) => {
@@ -150,11 +139,10 @@ export const getFactoryMetrics = async () => {
     ? Math.round(workerMetrics.reduce((sum, w) => sum + w.utilization, 0) / workerMetrics.length)
     : 0;
 
-  // Total events ingested
-  const totalEvents = await db.event.count();
+  const totalEvents = allEvents.length;
 
   return {
-    total_productive_time: toHoursMinutes(totalActiveMinutes),
+    total_productive_time:  toHoursMinutes(totalActiveMinutes),
     total_production_count: totalUnits,
     avg_production_rate:    `${avgProductionRate} units/hr`,
     avg_utilization:        avgUtilization,
