@@ -1,36 +1,44 @@
-import type { Knex } from 'knex';
+import db from '../config/database';
 
-export async function seed(knex: Knex): Promise<void> {
-
+export async function seed(): Promise<void> {
   // ── Insert workers only if they don't exist
-  await knex('workers')
-    .insert([
-      { worker_id: 'W1', name: 'Carlos Mendez'  },
-      { worker_id: 'W2', name: 'Anika Sharma'   },
-      { worker_id: 'W3', name: 'James Okafor'   },
-      { worker_id: 'W4', name: 'Mei-Lin Zhang'  },
-      { worker_id: 'W5', name: 'Dmitri Volkov'  },
-      { worker_id: 'W6', name: 'Fatima Al-Nour' },
-    ])
-    .onConflict('worker_id')
-    .ignore();
+  const workers = [
+    { worker_id: 'W1', name: 'Carlos Mendez'  },
+    { worker_id: 'W2', name: 'Anika Sharma'   },
+    { worker_id: 'W3', name: 'James Okafor'   },
+    { worker_id: 'W4', name: 'Mei-Lin Zhang'  },
+    { worker_id: 'W5', name: 'Dmitri Volkov'  },
+    { worker_id: 'W6', name: 'Fatima Al-Nour' },
+  ];
+
+  for (const worker of workers) {
+    await db.worker.upsert({
+      where: { worker_id: worker.worker_id },
+      update: {},
+      create: worker,
+    });
+  }
 
   // ── Insert workstations only if they don't exist
-  await knex('workstations')
-    .insert([
-      { station_id: 'S1', name: 'Station Alpha',   type: 'Assembly'  },
-      { station_id: 'S2', name: 'Station Beta',    type: 'Packaging' },
-      { station_id: 'S3', name: 'Station Gamma',   type: 'Assembly'  },
-      { station_id: 'S4', name: 'Station Delta',   type: 'QA'        },
-      { station_id: 'S5', name: 'Station Epsilon', type: 'Welding'   },
-      { station_id: 'S6', name: 'Station Zeta',    type: 'Packaging' },
-    ])
-    .onConflict('station_id')
-    .ignore();
+  const stations = [
+    { station_id: 'S1', name: 'Station Alpha',   type: 'Assembly'  },
+    { station_id: 'S2', name: 'Station Beta',    type: 'Packaging' },
+    { station_id: 'S3', name: 'Station Gamma',   type: 'Assembly'  },
+    { station_id: 'S4', name: 'Station Delta',   type: 'QA'        },
+    { station_id: 'S5', name: 'Station Epsilon', type: 'Welding'   },
+    { station_id: 'S6', name: 'Station Zeta',    type: 'Packaging' },
+  ];
+
+  for (const station of stations) {
+    await db.workstation.upsert({
+      where: { station_id: station.station_id },
+      update: {},
+      create: station,
+    });
+  }
 
   // ── Only seed events if table is empty
-  const existing = await knex('events').count('id as total').first();
-  const eventCount = Number(existing?.total) || 0;
+  const eventCount = await db.event.count();
 
   if (eventCount > 0) {
     console.log(` Skipping event seed — ${eventCount} events already exist`);
@@ -52,9 +60,9 @@ export async function seed(knex: Knex): Promise<void> {
       const idleStart = new Date(workStart.getTime() + 45 * 60 * 1000);
       const workEnd   = new Date(workStart.getTime() + 60 * 60 * 1000);
 
-      events.push({ timestamp: workStart.toISOString(), worker_id: workerId, workstation_id: stationId, event_type: 'working',       confidence, count: 0 });
-      events.push({ timestamp: idleStart.toISOString(), worker_id: workerId, workstation_id: stationId, event_type: 'idle',           confidence, count: 0 });
-      events.push({ timestamp: workEnd.toISOString(),   worker_id: workerId, workstation_id: stationId, event_type: 'product_count',  confidence, count: pattern === 'high' ? 35 : pattern === 'medium' ? 28 : 18 });
+      events.push({ timestamp: workStart, worker_id: workerId, workstation_id: stationId, event_type: 'working',       confidence, count: 0 });
+      events.push({ timestamp: idleStart, worker_id: workerId, workstation_id: stationId, event_type: 'idle',           confidence, count: 0 });
+      events.push({ timestamp: workEnd,   worker_id: workerId, workstation_id: stationId, event_type: 'product_count',  confidence, count: pattern === 'high' ? 35 : pattern === 'medium' ? 28 : 18 });
     }
 
     return events;
@@ -70,15 +78,30 @@ export async function seed(knex: Knex): Promise<void> {
   ];
 
   allEvents.push(
-    { timestamp: '2026-01-15T11:00:00Z', worker_id: 'W5', workstation_id: 'S5', event_type: 'absent', confidence: 0.95, count: 0 },
-    { timestamp: '2026-01-15T12:00:00Z', worker_id: 'W5', workstation_id: 'S5', event_type: 'absent', confidence: 0.95, count: 0 },
-    { timestamp: '2026-01-15T13:00:00Z', worker_id: 'W5', workstation_id: 'S5', event_type: 'absent', confidence: 0.95, count: 0 },
+    { timestamp: new Date('2026-01-15T11:00:00Z'), worker_id: 'W5', workstation_id: 'S5', event_type: 'absent', confidence: 0.95, count: 0 },
+    { timestamp: new Date('2026-01-15T12:00:00Z'), worker_id: 'W5', workstation_id: 'S5', event_type: 'absent', confidence: 0.95, count: 0 },
+    { timestamp: new Date('2026-01-15T13:00:00Z'), worker_id: 'W5', workstation_id: 'S5', event_type: 'absent', confidence: 0.95, count: 0 },
   );
 
-  await knex('events').insert(allEvents);
+  await db.event.createMany({
+    data: allEvents,
+    skipDuplicates: true,
+  });
 
   console.log('   Seed complete!');
   console.log(`   Workers:      6`);
   console.log(`   Workstations: 6`);
   console.log(`   Events:       ${allEvents.length}`);
+}
+
+if (require.main === module) {
+  seed()
+    .then(async () => {
+      await db.$disconnect();
+    })
+    .catch(async (e) => {
+      console.error(e);
+      await db.$disconnect();
+      process.exit(1);
+    });
 }

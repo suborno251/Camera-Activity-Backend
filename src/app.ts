@@ -12,21 +12,19 @@ import seedRoutes   from './routes/seedRoutes';
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-const allowedOrigins = [
-  // 'http://localhost',
-  // 'http://localhost:80',
-  // 'http://localhost:5173',
-  // 'http://localhost:3000',
-  // 'https://beautiful-pegasus-7ebde8.netlify.app',
-  // 'https://camera-activity-frontend.vercel.app',
-  process.env.CORS_ORIGIN || '',
-].filter(Boolean);
+const corsEnv = process.env.CORS_ORIGIN || '';
+const allowedOrigins = corsEnv
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (curl, Postman, Railway health checks)
+    // Allow requests with no origin (curl, Postman, Render health checks)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (allowedOrigins.length === 0 || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
     callback(new Error(`CORS blocked: ${origin}`));
   },
   methods: ['GET', 'POST'],
@@ -38,7 +36,7 @@ app.use('/api/events',  eventRoutes);
 app.use('/api/metrics', metricRoutes);
 app.use('/api/seed',    seedRoutes);
 
-db.raw('SELECT 1')
+db.$queryRaw`SELECT 1`
   .then(() => console.log('PostgreSQL connected successfully'))
   .catch((err: Error) => console.error('PostgreSQL connection failed:', err.message));
 

@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: camera-activity-backend
+    env: node
+    plan: free
+    buildCommand: npm install --include=dev && npm run build && npx prisma db push
+    startCommand: npm run start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGIN
+        value: "*"

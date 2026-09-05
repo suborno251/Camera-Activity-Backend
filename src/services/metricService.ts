@@ -28,13 +28,14 @@ const computeTimeMinutes = (events: any[]): number => {
 //  WORKER METRICS
 // ════════════════════════════════════════════
 export const getWorkerMetrics = async () => {
-  const workers = await db('workers').select('*');
+  const workers = await db.worker.findMany();
 
   const metrics = await Promise.all(workers.map(async (worker) => {
     // Get all events for this worker sorted by timestamp
-    const allEvents = await db('events')
-      .where({ worker_id: worker.worker_id })
-      .orderBy('timestamp', 'asc');
+    const allEvents = await db.event.findMany({
+      where: { worker_id: worker.worker_id },
+      orderBy: { timestamp: 'asc' },
+    });
 
     const workingEvents = allEvents.filter(e => e.event_type === 'working');
     const idleEvents    = allEvents.filter(e => e.event_type === 'idle');
@@ -48,12 +49,12 @@ export const getWorkerMetrics = async () => {
       : 0;
 
     // Units produced
-    const unitsResult = await db('events')
-      .where({ worker_id: worker.worker_id, event_type: 'product_count' })
-      .sum('count as total')
-      .first();
+    const unitsResult = await db.event.aggregate({
+      where: { worker_id: worker.worker_id, event_type: 'product_count' },
+      _sum: { count: true },
+    });
 
-    const unitsProduced = Number(unitsResult?.total) || 0;
+    const unitsProduced = unitsResult._sum.count ?? 0;
     const activeHours   = activeMinutes / 60;
     const unitsPerHour  = activeHours > 0
       ? Math.round((unitsProduced / activeHours) * 10) / 10
@@ -84,24 +85,25 @@ export const getWorkerMetrics = async () => {
 //  WORKSTATION METRICS
 // ════════════════════════════════════════════
 export const getWorkstationMetrics = async () => {
-  const stations = await db('workstations').select('*');
+  const stations = await db.workstation.findMany();
 
   const metrics = await Promise.all(stations.map(async (station) => {
-    const allEvents = await db('events')
-      .where({ workstation_id: station.station_id })
-      .orderBy('timestamp', 'asc');
+    const allEvents = await db.event.findMany({
+      where: { workstation_id: station.station_id },
+      orderBy: { timestamp: 'asc' },
+    });
 
     const workingEvents = allEvents.filter(e => e.event_type === 'working');
     const occupancyMins = computeTimeMinutes(workingEvents);
 
     const utilization = Math.round((occupancyMins / SHIFT_DURATION) * 100);
 
-    const unitsResult = await db('events')
-      .where({ workstation_id: station.station_id, event_type: 'product_count' })
-      .sum('count as total')
-      .first();
+    const unitsResult = await db.event.aggregate({
+      where: { workstation_id: station.station_id, event_type: 'product_count' },
+      _sum: { count: true },
+    });
 
-    const unitsProduced  = Number(unitsResult?.total) || 0;
+    const unitsProduced  = unitsResult._sum.count ?? 0;
     const occupancyHours = occupancyMins / 60;
     const throughput     = occupancyHours > 0
       ? Math.round((unitsProduced / occupancyHours) * 10) / 10
@@ -149,8 +151,7 @@ export const getFactoryMetrics = async () => {
     : 0;
 
   // Total events ingested
-  const eventCountResult = await db('events').count('id as total').first();
-  const totalEvents      = Number(eventCountResult?.total) || 0;
+  const totalEvents = await db.event.count();
 
   return {
     total_productive_time: toHoursMinutes(totalActiveMinutes),

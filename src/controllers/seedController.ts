@@ -17,9 +17,9 @@ const generateEvents = (
     const idleStart = new Date(workStart.getTime() + 45 * 60 * 1000);
     const workEnd   = new Date(workStart.getTime() + 60 * 60 * 1000);
 
-    events.push({ timestamp: workStart.toISOString(), worker_id: workerId, workstation_id: stationId, event_type: 'working',       confidence, count: 0 });
-    events.push({ timestamp: idleStart.toISOString(), worker_id: workerId, workstation_id: stationId, event_type: 'idle',           confidence, count: 0 });
-    events.push({ timestamp: workEnd.toISOString(),   worker_id: workerId, workstation_id: stationId, event_type: 'product_count',  confidence, count: unitCount });
+    events.push({ timestamp: workStart, worker_id: workerId, workstation_id: stationId, event_type: 'working',       confidence, count: 0 });
+    events.push({ timestamp: idleStart, worker_id: workerId, workstation_id: stationId, event_type: 'idle',           confidence, count: 0 });
+    events.push({ timestamp: workEnd,   worker_id: workerId, workstation_id: stationId, event_type: 'product_count',  confidence, count: unitCount });
   }
 
   return events;
@@ -28,7 +28,7 @@ const generateEvents = (
 // POST /api/seed/refresh — Only resets events, master data stays intact
 export const refreshSeed = async (req: Request, res: Response): Promise<void> => {
   // Only wipe events — workers and workstations are master data
-  await db('events').del();
+  await db.event.deleteMany();
 
   const allEvents = [
     ...generateEvents('W1', 'S1', '2026-01-15', 'high'),
@@ -37,12 +37,15 @@ export const refreshSeed = async (req: Request, res: Response): Promise<void> =>
     ...generateEvents('W4', 'S4', '2026-01-15', 'high'),
     ...generateEvents('W5', 'S5', '2026-01-15', 'low'),
     ...generateEvents('W6', 'S6', '2026-01-15', 'medium'),
-    { timestamp: '2026-01-15T11:00:00Z', worker_id: 'W5', workstation_id: 'S5', event_type: 'absent', confidence: 0.95, count: 0 },
-    { timestamp: '2026-01-15T12:00:00Z', worker_id: 'W5', workstation_id: 'S5', event_type: 'absent', confidence: 0.95, count: 0 },
-    { timestamp: '2026-01-15T13:00:00Z', worker_id: 'W5', workstation_id: 'S5', event_type: 'absent', confidence: 0.95, count: 0 },
+    { timestamp: new Date('2026-01-15T11:00:00Z'), worker_id: 'W5', workstation_id: 'S5', event_type: 'absent', confidence: 0.95, count: 0 },
+    { timestamp: new Date('2026-01-15T12:00:00Z'), worker_id: 'W5', workstation_id: 'S5', event_type: 'absent', confidence: 0.95, count: 0 },
+    { timestamp: new Date('2026-01-15T13:00:00Z'), worker_id: 'W5', workstation_id: 'S5', event_type: 'absent', confidence: 0.95, count: 0 },
   ];
 
-  await db('events').insert(allEvents);
+  await db.event.createMany({
+    data: allEvents,
+    skipDuplicates: true,
+  });
 
   res.json({
     message: 'Events refreshed successfully',
@@ -54,14 +57,14 @@ export const refreshSeed = async (req: Request, res: Response): Promise<void> =>
 // GET /api/seed/status
 export const seedStatus = async (req: Request, res: Response): Promise<void> => {
   const [workers, workstations, events] = await Promise.all([
-    db('workers').count('worker_id as total').first(),
-    db('workstations').count('station_id as total').first(),
-    db('events').count('id as total').first(),
+    db.worker.count(),
+    db.workstation.count(),
+    db.event.count(),
   ]);
 
   res.json({
-    workers:      Number(workers?.total)      || 0,
-    workstations: Number(workstations?.total) || 0,
-    events:       Number(events?.total)       || 0,
+    workers,
+    workstations,
+    events,
   });
 };

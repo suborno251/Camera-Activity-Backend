@@ -21,7 +21,7 @@ A full-stack web application that ingests AI-generated CCTV events, stores them 
 |------------------|-------------------------------------|
 | Frontend         | React.js + TypeScript + Bootstrap 5 |
 | Backend          | Node.js + Express.js + TypeScript   |
-| Database         | PostgreSQL (via Knex.js)            |
+| Database         | PostgreSQL (via Prisma ORM)         |
 | Containerization | Docker + Docker Compose             |
 | Cloud Hosting    | Railway (Backend) + Vercel (Frontend) |
 
@@ -32,9 +32,12 @@ A full-stack web application that ingests AI-generated CCTV events, stores them 
 ### Backend — `Camera-Dashboard-Backend`
 ```
 Camera-Dashboard-Backend/
+├── prisma/
+│   ├── migrations/               # Prisma migrations
+│   └── schema.prisma             # Prisma database schema
 ├── src/
 │   ├── config/
-│   │   └── database.ts           # Knex PostgreSQL connection setup
+│   │   └── database.ts           # Prisma client setup
 │   ├── controllers/
 │   │   ├── eventController.ts    # Handles POST /api/events
 │   │   ├── metricController.ts   # Handles GET /api/metrics
@@ -45,12 +48,9 @@ Camera-Dashboard-Backend/
 │   │   └── seedRoutes.ts
 │   ├── services/
 │   │   └── metricService.ts      # All metric computation logic
-│   ├── migrations/
-│   │   └── 001_initial_schema.ts # Workers, workstations, events tables
 │   ├── seeds/
 │   │   └── seed_data.ts          # 6 workers, 6 stations, dummy events
 │   └── app.ts                    # Express app entry point
-├── knexfile.ts                   # Knex migration/seed configuration
 ├── docker-compose.yml            # PostgreSQL + Backend containers
 ├── Dockerfile
 ├── .env
@@ -380,6 +380,7 @@ npm run dev       # Start React on http://localhost:5173
 | `npm run dev`      | Start dev server with nodemon + ts-node |
 | `npm run build`    | Compile TypeScript to `dist/`           |
 | `npm run start`    | Run compiled JS from `dist/`            |
-| `npm run migrate`  | Run Knex migrations (create tables)     |
-| `npm run seed`     | Insert master data + dummy events       |
-| `npm run db:reset` | Rollback + re-migrate + re-seed         |
+| `npm run migrate`  | Run Prisma migrations (`prisma migrate deploy`) |
+| `npm run db:push`  | Push schema directly to DB (`prisma db push`)   |
+| `npm run seed`     | Insert master data + dummy events               |
+| `npm run db:reset` | Reset database and re-run migrations            |

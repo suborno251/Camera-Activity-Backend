@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Worker {
+  worker_id  String   @id
+  name       String
+  created_at DateTime @default(now())
+  events     Event[]
+
+  @@map("workers")
+}
+
+model Workstation {
+  station_id String   @id
+  name       String
+  type       String
+  created_at DateTime @default(now())
+  events     Event[]
+
+  @@map("workstations")
+}
+
+model Event {
+  id             Int         @id @default(autoincrement())
+  timestamp      DateTime
+  worker_id      String
+  workstation_id String
+  event_type     String
+  confidence     Float       @default(0)
+  count          Int         @default(0)
+  created_at     DateTime    @default(now())
+
+  worker         Worker      @relation(fields: [worker_id], references: [worker_id], onDelete: Cascade)
+  workstation    Workstation @relation(fields: [workstation_id], references: [station_id], onDelete: Cascade)
+
+  @@unique([worker_id, workstation_id, timestamp, event_type])
+  @@map("events")
+}
