@@ -36,9 +36,27 @@ app.use('/api/events',  eventRoutes);
 app.use('/api/metrics', metricRoutes);
 app.use('/api/seed',    seedRoutes);
 
-db.$queryRaw`SELECT 1`
-  .then(() => console.log('PostgreSQL connected successfully'))
-  .catch((err: Error) => console.error('PostgreSQL connection failed:', err.message));
+const initDb = async () => {
+  try {
+    await db.$queryRaw`SELECT 1`;
+    console.log('PostgreSQL connected successfully');
+
+    try {
+      await db.worker.count();
+    } catch (err: any) {
+      if (err.code === 'P2021') {
+        console.log('Tables do not exist. Automatically applying migrations and seeds...');
+        const { execSync } = require('child_process');
+        execSync('npx prisma migrate deploy && npm run seed', { stdio: 'inherit' });
+        console.log('Database initialized and seeded successfully.');
+      }
+    }
+  } catch (err: any) {
+    console.error('PostgreSQL connection failed:', err.message);
+  }
+};
+
+initDb();
 
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'FactoryIQ Backend Running' });
