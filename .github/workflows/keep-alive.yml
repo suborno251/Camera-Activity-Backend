@@ -1,0 +1,17 @@
+name: Keep Render Backend Alive
+
+on:
+  schedule:
+    # Runs every 12 minutes to prevent Render free-tier from sleeping (inactivity limit is 15 mins)
+    - cron: '*/12 * * * *'
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Backend
+        run: |
+          echo "Sending keep-alive ping to Render backend..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --retry 2 https://camera-activity-backend.onrender.com/)
+          echo "Response HTTP status: $HTTP_STATUS"

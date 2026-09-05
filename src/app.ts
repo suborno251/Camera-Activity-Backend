@@ -62,6 +62,31 @@ app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'FactoryIQ Backend Running' });
 });
 
+// ── Keep-Alive Ping (every 12 minutes to keep Render free tier awake)
+const KEEP_ALIVE_INTERVAL = 12 * 60 * 1000;
+const RENDER_URL = process.env.RENDER_EXTERNAL_URL || 'https://camera-activity-backend.onrender.com';
+
+const startKeepAlive = () => {
+  if (process.env.NODE_ENV !== 'production' && !process.env.RENDER_EXTERNAL_URL) {
+    return;
+  }
+
+  console.log(`Keep-alive ping scheduled every 12 minutes for ${RENDER_URL}`);
+  setInterval(async () => {
+    try {
+      const https = await import('https');
+      https.get(RENDER_URL, (res) => {
+        console.log(`[Keep-Alive] Ping sent to ${RENDER_URL} — status: ${res.statusCode}`);
+      }).on('error', (err) => {
+        console.error('[Keep-Alive] Ping failed:', err.message);
+      });
+    } catch (err: any) {
+      console.error('[Keep-Alive] Error:', err.message);
+    }
+  }, KEEP_ALIVE_INTERVAL);
+};
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  startKeepAlive();
 });
